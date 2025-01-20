@@ -1,13 +1,11 @@
-"use client"
-import Link from "next/link";
+"use client";
+import { VortexDemoSecond } from "./components/landingHero";
 
 export default function Home() {
   return (
-    <main className="flex flex-col gap-8 row-start-2 p-8 pt-32 items-center">
-      <div className="home">
-        <h1>Welcome to the Auction System</h1>
-        <Link href="/auth/login">Login</Link>
-        <Link href="/auth/register">Register</Link>
+    <main className="flex flex-col gap-8 row-start-2 items-center w-full h-screen">
+      <div className="w-full h-full">
+        <VortexDemoSecond />
       </div>
     </main>
   );

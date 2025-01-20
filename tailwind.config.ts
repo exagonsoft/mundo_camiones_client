@@ -1,10 +1,11 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable prefer-const */
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: ["./**/*.{ts,tsx}"],
+  content: [
+    "./pages/**/*.{js,ts,jsx,tsx}",
+    "./components/**/*.{js,ts,jsx,tsx}",
+    "./app/**/*.{js,ts,jsx,tsx}",
+  ],
   darkMode: "class",
   theme: {
     // rest of the code
@@ -16,4 +17,3 @@ module.exports = {
   },
   plugins: [],
 };
-

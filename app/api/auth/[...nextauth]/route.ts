@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { config } from "@/lib/constants";
 import NextAuth, { AuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import { config } from "@/lib/constants";
 
-export const authOptions: AuthOptions = {
+const authOptions: AuthOptions = {
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -38,11 +38,11 @@ export const authOptions: AuthOptions = {
       }
       return token;
     },
-    async session({ session, token }: {session: any, token: any}) {
+    async session({ session, token }: { session: any; token: any }) {
       session.user = {
-        id: token.id as string,
-        role: token.role as string,
-        accessToken: token.accessToken.access_token as string,
+        id: token.id,
+        role: token.role,
+        accessToken: token.accessToken, // Use token directly
       };
       return session;
     },
@@ -52,3 +52,4 @@ export const authOptions: AuthOptions = {
 
 const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };
+

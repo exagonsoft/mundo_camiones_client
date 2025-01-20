@@ -175,7 +175,7 @@ const AuctioneerView: React.FC<{ auctionId: string }> = ({ auctionId }) => {
         transports: ["websocket", "polling"],
         withCredentials: true,
         auth: {
-          token: `Bearer ${session?.user.accessToken}`, // Send the token
+          token: `Bearer ${session?.user.accessToken?.access_token}`, // Send the token
         },
       });
 
@@ -212,7 +212,7 @@ const AuctioneerView: React.FC<{ auctionId: string }> = ({ auctionId }) => {
       socket.current?.off("answer");
       socket.current = null;
     };
-  }, [auctionId, session?.user.accessToken, isStreaming, socket]);
+  }, [auctionId, session?.user.accessToken?.access_token, isStreaming, socket]);
 
   const startStream = async () => {
     try {

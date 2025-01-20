@@ -95,12 +95,14 @@ const ClientView = ({ auctionIdentifier }: { auctionIdentifier?: string }) => {
       console.warn("Session or access token not available yet.");
       return;
     } else {
+      console.log("THE ACCESS TOKEN: ", session?.user.accessToken);
+      
       // Initialize WebSocket connection
       socket.current = io(config.baseAuctionUrl, {
         transports: ["websocket", "polling"],
         withCredentials: true,
         auth: {
-          token: `Bearer ${session?.user.accessToken}`, // Send the token
+          token: `Bearer ${session?.user.accessToken?.access_token}`, // Send the token
         },
       });
 
@@ -170,7 +172,7 @@ const ClientView = ({ auctionIdentifier }: { auctionIdentifier?: string }) => {
       socket.current?.off("offer", handleOffer);
       socket.current?.disconnect();
     };
-  }, [auctionIdentifier, session?.user]);
+  }, [auctionIdentifier, session?.user.accessToken?.access_token]);
 
   const cleanupStream = () => {
     console.log("Cleaning up stream and peer connection...");

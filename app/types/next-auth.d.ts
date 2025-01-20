@@ -13,13 +13,13 @@ declare module "next-auth" {
     user: {
       id: string;
       role: string;
-      accessToken: string;
+      accessToken: {access_token: string; role: string; user: string};
     };
   }
 
   interface JWT {
     id: string;
     role: string;
-    accessToken: string;
+    accessToken: {access_token: string; role: string; user: string};
   }
 }

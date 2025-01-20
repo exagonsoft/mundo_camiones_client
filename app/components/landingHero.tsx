@@ -4,7 +4,7 @@ import Link from "next/link";
 
 export function VortexDemoSecond() {
   return (
-    <div className="w-[calc(100%-4rem)] mx-auto rounded-md  h-screen overflow-hidden">
+    <div className="w-full mx-auto rounded-md  h-screen overflow-hidden">
       <Vortex
         backgroundColor="black"
         rangeY={800}

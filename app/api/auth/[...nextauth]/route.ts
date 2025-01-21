@@ -4,6 +4,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { config } from "@/lib/constants";
 
 const authOptions: AuthOptions = {
+  secret: process.env.NEXTAUTH_SECRET || "mundo_camiones_secret",
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -12,15 +13,24 @@ const authOptions: AuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        const res = await fetch(`${config.baseAuthUrl}/auth/login`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(credentials),
-        });
+        try {
+          const res = await fetch(`${config.baseAuthUrl}/auth/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(credentials),
+          });
 
-        const user = await res.json();
-        if (res.ok && user) {
-          return user; // Return the custom user object
+          if (!res.ok) {
+            throw new Error("Invalid username or password");
+          }
+
+          const user = await res.json();
+          if (user) {
+            return user;
+          }
+        } catch (error) {
+          console.error("Authorization error:", error);
+          return null;
         }
         return null; // Authentication failed
       },
@@ -47,9 +57,7 @@ const authOptions: AuthOptions = {
       return session;
     },
   },
-  secret: process.env.NEXTAUTH_SECRET,
 };
 
 const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };
-

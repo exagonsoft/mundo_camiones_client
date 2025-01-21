@@ -7,7 +7,8 @@ export function middleware(req: NextRequest) {
   const allowedOrigins = [
     "http://localhost:3000", // Local development
     "https://yourdomain.com",
-    "https://master.d2bdppuk7eu8fy.amplifyapp.com"
+    "https://master.d2bdppuk7eu8fy.amplifyapp.com",
+    "https://subastas.client.martinnotaryfl.com"
   ];
 
   if (origin && !allowedOrigins.includes(origin)) {

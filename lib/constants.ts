@@ -22,6 +22,6 @@ export const mediaConstraints = {
 };
 
 export const config = {
-  baseAuthUrl: "https://subastas.auth.martinnotary.com",
-  baseAuctionUrl: "https://subastas.auth.martinnotary.com"
+  baseAuthUrl: "https://subastas.auth.martinnotaryfl.com",
+  baseAuctionUrl: "https://subastas.auction.martinnotaryfl.com"
 }

@@ -182,6 +182,17 @@ const AuctioneerView: React.FC<{ auctionId: string }> = ({ auctionId }) => {
       socket.current.on("connect", () => {
         console.log("Connected to WebSocket server:", socket.current?.id);
         socket.current?.emit("joinAuction", { auctionId });
+        if (!currentLot) {
+          if (auction) {
+            setCurrentLot(auction?.lots[0]);
+            setCurrentMedia(auction?.lots[0].media[0]);
+            broadcastMedia(auction?.lots[0].media[0]);
+          }
+        }else{
+          if (auction) {
+            broadcastMedia(auction?.lots[0].media[0]);
+          }
+        }
       });
 
       socket.current.on("disconnect", () => {

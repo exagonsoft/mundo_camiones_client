@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import TimerCounter from "./timerCounter";
 import { AuctionBid } from "@/app/types/auction";
 
@@ -10,11 +10,6 @@ const TimerController: React.FC<{
   currentBid?: AuctionBid;
 }> = ({ startTimer, resetTimer, timer, currentBid }) => {
   const [duration, setDuration] = useState<number>(15);
-
-  
-
-  useEffect(() => {console.log(timer);
-  }, [timer]);
 
   return (
     <div className="flex flex-col items-center gap-4 relative">

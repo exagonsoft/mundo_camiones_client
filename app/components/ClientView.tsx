@@ -73,8 +73,7 @@ const ClientView = ({ auctionIdentifier }: { auctionIdentifier?: string }) => {
       console.log("Peer connection closed");
     });
 
-    peer.on("error", (error) => {
-    });
+    peer.on("error", (error) => {});
 
     // Signal the received offer to the new peer
     peer.signal(signalData);
@@ -83,11 +82,25 @@ const ClientView = ({ auctionIdentifier }: { auctionIdentifier?: string }) => {
     peerRef.current = peer;
   };
 
-  const handleBitUpdate = ({ data }: { data: any }) => {
-    console.log("BIT UPDATED DATA: ", data);
+  const handleBitUpdate = (data: { currentBid?: any; bidList?: any }) => {
+    console.log("Received bidUpdated event:", data);
 
-    setCurrentBid(data.currentBid);
-    setBidHistory((prev) => [...prev, ...data.bidList]);
+    if (!data || typeof data !== "object") {
+      console.error("Invalid bidUpdated payload:", data);
+      return;
+    }
+
+    const { currentBid, bidList } = data;
+
+    if (!currentBid || !bidList) {
+      console.error("Incomplete bidUpdated data:", data);
+      return;
+    }
+
+    console.log("BIT UPDATED DATA:", { currentBid, bidList });
+
+    setCurrentBid(currentBid);
+    setBidHistory((prev) => [...prev, ...bidList]);
   };
 
   useEffect(() => {
@@ -96,7 +109,7 @@ const ClientView = ({ auctionIdentifier }: { auctionIdentifier?: string }) => {
       return;
     } else {
       console.log("THE ACCESS TOKEN: ", session?.user.accessToken);
-      
+
       // Initialize WebSocket connection
       socket.current = io(config.baseAuctionUrl, {
         transports: ["websocket", "polling"],
@@ -128,23 +141,25 @@ const ClientView = ({ auctionIdentifier }: { auctionIdentifier?: string }) => {
         }
       });
 
+      socket.current?.on("timerUpdate", ({ remainingTime }) => {
+        setTimer(remainingTime);
+      });
+
       // Listen for the 'initialData' event from the server
       socket.current.on("initialData", (data) => {
         console.log("Received initial data:", data);
-        if (data.client === session?.user?.id) {
-          setCurrentBid(data.currentBid);
-          setBidHistory(data.bidHistory);
-          setProductMedia({
-            type: data.currentMedia.type,
-            url: data.currentMedia.url,
-            id: data.currentMedia.id,
-            description: data.description,
-          });
-        }
+        setCurrentBid(data.currentBid);
+        setBidHistory(data.bidHistory);
+        setProductMedia({
+          type: data.currentMedia.type,
+          url: data.currentMedia.url,
+          id: data.currentMedia.id,
+          description: data.description,
+        });
       });
 
       // Listen for auction updates
-      socket.current.on("bidUpdated", handleBitUpdate);
+      socket.current?.on("bidUpdated", handleBitUpdate);
 
       socket.current.on("mediaUpdated", (media) => {
         const _url = media.media.url;
@@ -170,6 +185,7 @@ const ClientView = ({ auctionIdentifier }: { auctionIdentifier?: string }) => {
     return () => {
       cleanupStream();
       socket.current?.off("offer", handleOffer);
+      socket.current?.off('bidUpdated', handleBitUpdate);
       socket.current?.disconnect();
     };
   }, [auctionIdentifier, session?.user.accessToken?.access_token]);
@@ -224,7 +240,7 @@ const ClientView = ({ auctionIdentifier }: { auctionIdentifier?: string }) => {
               <span className="!text-sm">incremento $ 50.000</span>
             </div>
             <div className="font-bold h-full w-full flex justify-center items-center relative mt-4">
-              <TimerCounter timer={timer} />
+              <TimerCounter timer={timer} currentBid={currentBid}/>
             </div>
           </div>
 

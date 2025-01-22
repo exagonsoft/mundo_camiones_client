@@ -1,7 +1,8 @@
 import { AuctionBid } from "@/app/types/auction";
-import React from "react";
+import React, { useEffect } from "react";
 
 const TimerCounter = ({ timer, currentBid }: { timer: number, currentBid?: AuctionBid }) => {
+  useEffect(() => {}, [timer, currentBid])
   return (
     <div className="flex w-20 h-20 justify-center items-center p-20 rounded-full absolute z-20">
       <div className="flex w-20 h-20 justify-center items-center p-16 rounded-full absolute bg-white z-20">{timer}s</div>

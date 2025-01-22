@@ -3,6 +3,7 @@
 import React, { useEffect, useCallback } from "react";
 import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
+import { config } from "@/lib/constants";
 
 const NavBar = () => {
   const { data: session } = useSession();
@@ -10,7 +11,7 @@ const NavBar = () => {
   const handleLogout = useCallback(async () => {
     try {
       await signOut({
-        callbackUrl: "/", // Redirect to the homepage after logout
+        callbackUrl: config.prodUrl, // Redirect to the homepage after logout
       });
     } catch (error) {
       console.error("Failed to log out:", error);

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @next/next/no-img-element */
 "use client";
@@ -403,6 +404,12 @@ const AuctioneerView: React.FC<{ auctionId: string }> = ({ auctionId }) => {
             </button>
           )}
         </div>
+        {/* <div className="">
+          {bidHistory?.map((bid, indx) => (<div key={indx}>
+            {bid.username}
+            {bid.bidAmount}
+          </div>))}
+        </div> */}
         <div className="flex w-full justify-end items-start gap-4">
           {!showMirror ? (
             <>

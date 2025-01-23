@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @next/next/no-img-element */
@@ -162,6 +163,13 @@ const AuctioneerView: React.FC<{ auctionId: string }> = ({ auctionId }) => {
   const socket = useRef<Socket | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
   const peerRef = useRef<Peer.Instance | null>(null);
+  const peersRef = useRef<{
+    [clientId: string]: {
+      peer: Peer.Instance;
+      candidatesQueue: RTCIceCandidateInit[]; // Queue for ICE candidates
+    };
+  }>({});
+
   const { data: session } = useSession();
   const router = useRouter();
   const [timer, setTimer] = useState<number>(0);
@@ -189,7 +197,7 @@ const AuctioneerView: React.FC<{ auctionId: string }> = ({ auctionId }) => {
             setCurrentMedia(auction?.lots[0].media[0]);
             broadcastMedia(auction?.lots[0].media[0]);
           }
-        }else{
+        } else {
           if (auction) {
             broadcastMedia(auction?.lots[0].media[0]);
           }
@@ -204,19 +212,99 @@ const AuctioneerView: React.FC<{ auctionId: string }> = ({ auctionId }) => {
         console.error("WebSocket connection error:", error.message);
       });
 
-      socket.current?.on("answer", ({ signalData }) => {
-        console.log("Received answer:", signalData);
-        peerRef.current?.signal(signalData);
+      socket.current?.on("answer", ({ clientId, signalData }) => {
+        console.log(`Received answer from client ${clientId}:`, signalData);
+
+        const peerData = peersRef.current[clientId];
+        if (peerData) {
+          const { peer, candidatesQueue } = peerData;
+
+          if (signalData.type === "answer") {
+            console.log(`Processing answer for client ${clientId}`);
+            peer.signal(signalData); // Process the answer first
+
+            // Process queued ICE candidates
+            while (candidatesQueue.length > 0) {
+              const candidateInit = candidatesQueue.shift();
+              if (candidateInit) {
+                console.log(
+                  `Adding queued ICE candidate for client ${clientId}:`,
+                  candidateInit
+                );
+
+                // Wrap candidateInit as an RTCIceCandidate object
+                peer.signal({
+                  type: "candidate",
+                  candidate: candidateInit as any, // Cast to satisfy simple-peer's expectations
+                });
+              }
+            }
+          } else if (signalData.type === "candidate") {
+            if (peer.connected) {
+              console.log(
+                `Adding ICE candidate for client ${clientId}:`,
+                signalData
+              );
+              peer.signal(signalData);
+            } else {
+              console.log(`Queuing ICE candidate for client ${clientId}`);
+              candidatesQueue.push(signalData.candidate); // Queue the raw RTCIceCandidateInit object
+            }
+          }
+        } else {
+          console.error(`No peer found for client ${clientId}`);
+        }
       });
 
       socket.current?.on("timerUpdate", ({ remainingTime }) => {
         setTimer(remainingTime);
       });
 
-      socket.current?.on("bidUpdated", ({bidList, currentBid}:{bidList: AuctionBid[], currentBid: AuctionBid}) => {
-         setCurrentBid(currentBid);
-         setBidHistory((prevList) => ({...prevList, ...bidList}))
-      })
+      socket.current?.on(
+        "bidUpdated",
+        ({
+          bidList,
+          currentBid,
+        }: {
+          bidList: AuctionBid[];
+          currentBid: AuctionBid;
+        }) => {
+          setCurrentBid(currentBid);
+          setBidHistory((prevList) => ({ ...prevList, ...bidList }));
+        }
+      );
+
+      // Handle client joining
+      socket.current?.on("userJoined", ({ clientId }) => {
+        console.log(`Client ${clientId} joined`);
+
+        const mediaStream = videoRef.current?.srcObject as MediaStream | null;
+
+        if (mediaStream) {
+          // Create a new peer for the client
+          const peer = new Peer({
+            initiator: true,
+            trickle: true,
+            stream: mediaStream, // Send the auctioneer's stream
+          });
+
+          // Send the offer to the client
+          peer.on("signal", (signalData) => {
+            console.log(`Sending offer to client ${clientId}:`, signalData);
+            socket.current?.emit("offer", { auctionId, clientId, signalData });
+          });
+
+          // Handle peer errors
+          peer.on("error", (err) =>
+            console.error(`Peer error for client ${clientId}:`, err)
+          );
+
+          // Add the peer and candidates queue to `peersRef`
+          peersRef.current[clientId] = { peer, candidatesQueue: [] };
+        } else {
+          console.error("No media stream available to send to the client.");
+        }
+      });
     }
 
     return () => {
@@ -243,56 +331,87 @@ const AuctioneerView: React.FC<{ auctionId: string }> = ({ auctionId }) => {
         setShowMirror(true);
       }
 
-      // Create a new peer connection
-      if (!peerRef.current) {
-        const peer = new Peer({
-          initiator: true,
-          trickle: false,
-          stream: _mediaStream,
-        });
+      // Notify the server that the stream has started
+      socket.current?.emit("startStream", { auctionId });
 
-        // Handle signaling
-        peer.on("signal", (data) => {
-          console.log("Sending offer:", data);
-          socket.current?.emit("offer", { auctionId, signalData: data });
-        });
+      // Handle new clients joining
+      socket.current?.on("userJoined", ({ clientId }) => {
+        console.log(`Client ${clientId} joined`);
 
-        // Handle errors
-        peer.on("error", (error) => {
-          console.error("Peer error:", error);
-        });
+        const mediaStream = videoRef.current?.srcObject as MediaStream | null;
 
-        // Save the peer instance
-        peerRef.current = peer;
-      } else {
-        // Clean up old peer connection if it exists
-        if (peerRef.current) {
-          console.log("Destroying old peer before creating a new one...");
-          peerRef.current.destroy();
-          peerRef.current = null;
+        if (mediaStream) {
+          // Create a new peer for the client
+          const peer = new Peer({
+            initiator: true,
+            trickle: true,
+            stream: mediaStream, // Send the auctioneer's stream
+          });
+
+          // Send the offer to the client
+          peer.on("signal", (signalData) => {
+            console.log(`Sending offer to client ${clientId}:`, signalData);
+            socket.current?.emit("offer", { auctionId, clientId, signalData });
+          });
+
+          // Handle peer errors
+          peer.on("error", (err) =>
+            console.error(`Peer error for client ${clientId}:`, err)
+          );
+
+          // Add the peer and candidates queue to `peersRef`
+          peersRef.current[clientId] = { peer, candidatesQueue: [] };
+        } else {
+          console.error("No media stream available to send to the client.");
         }
+      });
 
-        const peer = new Peer({
-          initiator: true,
-          trickle: false,
-          stream: _mediaStream,
-        });
+      // Handle answers from clients
+      socket.current?.on("answer", ({ clientId, signalData }) => {
+        console.log(`Received answer from client ${clientId}:`, signalData);
 
-        // Handle signaling
-        peer.on("signal", (data) => {
-          console.log("Sending offer:", data);
-          socket.current?.emit("offer", { auctionId, signalData: data });
-        });
+        const peerData = peersRef.current[clientId];
+        if (peerData) {
+          const { peer, candidatesQueue } = peerData;
 
-        // Handle errors
-        peer.on("error", (error) => {
-          console.error("Peer error:", error);
-        });
+          if (signalData.type === "answer") {
+            console.log(`Processing answer for client ${clientId}`);
+            peer.signal(signalData); // Process the answer first
 
-        // Save the peer instance
-        peerRef.current = peer;
-      }
-      if(currentMedia){
+            // Process queued ICE candidates
+            while (candidatesQueue.length > 0) {
+              const candidateInit = candidatesQueue.shift();
+              if (candidateInit) {
+                console.log(
+                  `Adding queued ICE candidate for client ${clientId}:`,
+                  candidateInit
+                );
+
+                // Wrap candidateInit as an RTCIceCandidate object
+                peer.signal({
+                  type: "candidate",
+                  candidate: candidateInit as any, // Cast to satisfy simple-peer's expectations
+                });
+              }
+            }
+          } else if (signalData.type === "candidate") {
+            if (peer.connected) {
+              console.log(
+                `Adding ICE candidate for client ${clientId}:`,
+                signalData
+              );
+              peer.signal(signalData);
+            } else {
+              console.log(`Queuing ICE candidate for client ${clientId}`);
+              candidatesQueue.push(signalData.candidate); // Queue the raw RTCIceCandidateInit object
+            }
+          }
+        } else {
+          console.error(`No peer found for client ${clientId}`);
+        }
+      });
+
+      if (currentMedia) {
         broadcastMedia(currentMedia);
       }
       setIsStreaming(true);
@@ -339,13 +458,13 @@ const AuctioneerView: React.FC<{ auctionId: string }> = ({ auctionId }) => {
 
   const startTimer = (duration: number) => {
     console.log("Starting Counter");
-    
+
     socket.current?.emit("startTimer", { auctionId, duration });
   };
 
   const resetTimer = () => {
     console.log("Resetting Timer");
-    
+
     socket.current?.emit("resetTimer", { auctionId });
   };
 

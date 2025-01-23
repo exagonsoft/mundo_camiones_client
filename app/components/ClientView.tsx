@@ -1,6 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import { useSession } from "next-auth/react";
@@ -28,59 +27,63 @@ const ClientView = ({ auctionIdentifier }: { auctionIdentifier?: string }) => {
   const peerRef = useRef<Peer.Instance | null>(null);
   const router = useRouter();
 
-  const handleOffer = ({ signalData }: { signalData: any }) => {
-    console.log("Received offer:", signalData);
-
-    // If a previous peer exists, destroy it
-    if (peerRef.current) {
-      console.log("Destroying old peer before creating a new one...");
-      peerRef.current.destroy();
-      peerRef.current = null;
-    }
-
-    // Create a new Peer instance for the new connection
-    const peer = new Peer({
-      initiator: false, // Client is not the initiator
-      trickle: false,
-    });
-
-    peer.on("signal", (data) => {
-      console.log("Sending answer:", data);
-      socket.current?.emit("answer", {
-        auctionId: auctionIdentifier,
-        signalData: data,
-      });
-    });
-
-    peer.on("stream", (stream) => {
-      console.log("Received new stream:", stream);
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.muted = false;
-
-        videoRef.current
-          .play()
-          .then(() => {
-            console.log("🎥 Playback started successfully");
-          })
-          .catch((error) => {
-            return;
+  const handleOffer = ({
+    auctionId,
+    clientId,
+    signalData,
+  }: {
+    auctionId: string;
+    clientId: string;
+    signalData: any;
+  }) => {
+    console.log(
+      `Received offer from auctioneer for client ${clientId} (current socket client ID: ${socket.current?.id}):`,
+      signalData
+    );
+  
+    // Check if it's an offer
+    if (signalData.type === "offer") {
+      // Create a new Peer instance if none exists
+      if (!peerRef.current) {
+        peerRef.current = new Peer({ initiator: false, trickle: true });
+  
+        // Handle signaling
+        peerRef.current.on("signal", (data) => {
+          console.log("Sending answer:", data);
+          socket.current?.emit("answer", {
+            auctionId,
+            clientId: clientId, // Include the client's socket ID
+            signalData: data,
           });
+        });
+  
+        // Handle incoming media stream
+        peerRef.current.on("stream", (stream) => {
+          console.log("Received stream from auctioneer:", stream);
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+            videoRef.current
+              .play()
+              .catch((err) => console.error("Playback failed:", err));
+          }
+        });
+  
+        // Handle peer errors
+        peerRef.current.on("error", (err) => {
+          console.error("Peer error:", err);
+        });
       }
-    });
-
-    peer.on("close", () => {
-      console.log("Peer connection closed");
-    });
-
-    peer.on("error", (error) => {});
-
-    // Signal the received offer to the new peer
-    peer.signal(signalData);
-
-    // Store the peer instance
-    peerRef.current = peer;
+  
+      // Signal the offer to the peer
+      console.log("Processing offer:", signalData);
+      peerRef.current.signal(signalData);
+    } else if (signalData.type === "candidate") {
+      // Handle ICE candidates
+      console.log("Received ICE candidate:", signalData.candidate);
+      peerRef.current?.signal(signalData);
+    }
   };
+  
 
   const handleBitUpdate = (data: { currentBid?: any; bidList?: any }) => {
     console.log("Received bidUpdated event:", data);
@@ -129,10 +132,10 @@ const ClientView = ({ auctionIdentifier }: { auctionIdentifier?: string }) => {
       });
 
       // Listen for the 'initialData' event from the server
-      socket.current.on("auctionJoined", ({ auctionId, username }) => {
+      socket.current.on("auctionJoined", ({ auctionId, clientId }) => {
         console.log(
-          `User ${username} has joined auction ${auctionId}`,
-          username
+          `User ${clientId} has joined auction ${auctionId}`,
+          clientId
         );
         if (auctionId === auctionIdentifier) {
           console.log("SEND REQUEST INITIAL DATA EVENT");
@@ -185,7 +188,7 @@ const ClientView = ({ auctionIdentifier }: { auctionIdentifier?: string }) => {
     return () => {
       cleanupStream();
       socket.current?.off("offer", handleOffer);
-      socket.current?.off('bidUpdated', handleBitUpdate);
+      socket.current?.off("bidUpdated", handleBitUpdate);
       socket.current?.disconnect();
     };
   }, [auctionIdentifier, session?.user.accessToken?.access_token]);
@@ -193,16 +196,14 @@ const ClientView = ({ auctionIdentifier }: { auctionIdentifier?: string }) => {
   const cleanupStream = () => {
     console.log("Cleaning up stream and peer connection...");
 
-    // if (peerRef.current) {
-    //   console.log("Peer connection closed");
-    //   peerRef.current.destroy();
-    //   peerRef.current = null;
-    // }
+    if (peerRef.current) {
+      peerRef.current.destroy();
+      peerRef.current = null;
+    }
 
     if (videoRef.current) {
       videoRef.current.srcObject = null;
       videoRef.current.pause();
-      console.log("🎥🎥🎥🎥🎥🎥Video stream cleared🎥🎥🎥🎥🎥🎥");
     }
   };
 
@@ -240,7 +241,7 @@ const ClientView = ({ auctionIdentifier }: { auctionIdentifier?: string }) => {
               <span className="!text-sm">incremento $ 50.000</span>
             </div>
             <div className="font-bold h-full w-full flex justify-center items-center relative mt-4">
-              <TimerCounter timer={timer} currentBid={currentBid}/>
+              <TimerCounter timer={timer} currentBid={currentBid} />
             </div>
           </div>
 

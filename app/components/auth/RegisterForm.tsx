@@ -49,7 +49,7 @@ const RegisterForm: React.FC = () => {
     e.preventDefault();
     const res = await fetch(`${config.baseAuthUrl}/auth/register`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Origin": 'https://subastas.client.martinnotaryfl.com', },
       body: JSON.stringify({ username, password }),
     });
 

@@ -1,30 +1,25 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
 import React, { useEffect, useCallback } from "react";
 import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 import { config } from "@/lib/constants";
+import { useRouter } from "next/navigation";
 
 const NavBar = () => {
   const { data: session } = useSession();
+  const router = useRouter();
 
-  const handleLogout = useCallback(async () => {
-    try {
-      await signOut({
-        callbackUrl: config.prodUrl, // Redirect to the homepage after logout
-      });
-    } catch (error) {
-      console.error("Failed to log out:", error);
-    }
-  }, []);
+  const handleLogout = async () => {
+    await signOut({redirect: false, callbackUrl: config.prodUrl});
+    router.push('/')
+  }
 
   const validateToken = useCallback(() => {
     if (session) {
       const sessionExpires = new Date(session.expires);
       const now = new Date();
-      console.log("Session expires at:", session.expires); // Log raw string
-      console.log("Parsed session expiration:", sessionExpires); // Log parsed Date
-      console.log("Current time:", now);
 
       if (sessionExpires <= now) {
         console.log("Session expired. Logging out...");
@@ -35,10 +30,9 @@ const NavBar = () => {
     } else {
       console.log("No session found.");
     }
-  }, [session, handleLogout]);
+  }, [session]);
 
   useEffect(() => {
-    console.log("Session data in useEffect:", session);
     validateToken();
   }, [session, validateToken]);
 

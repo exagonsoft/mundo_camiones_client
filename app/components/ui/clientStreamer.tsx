@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useEffect, useRef, useState } from "react";
 import { Room, RoomEvent, Track, RemoteTrackPublication } from "livekit-client";
+import { config } from "@/lib/constants";
 
 const ClientStreamer = ({ auctionId, clientId }: { auctionId?: string, clientId?: string }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -44,7 +45,7 @@ const ClientStreamer = ({ auctionId, clientId }: { auctionId?: string, clientId?
         let retries = 5; // Number of attempts
         while (retries > 0) {
           try {
-            await room.connect("ws://44.211.72.87:7880", clientToken);
+            await room.connect(config.streamingUrl, clientToken);
             console.log("Connected to room:", room.name);
             setIsConnected(true);
             break;

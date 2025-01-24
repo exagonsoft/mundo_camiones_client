@@ -27,8 +27,10 @@ export async function POST(req: Request): Promise<Response> {
       canSubscribe: !!canSubscribe,
     });
 
+    const _token = await token.toJwt();
+
     return new Response(
-      JSON.stringify({ token: token.toJwt() }),
+      JSON.stringify({ token: _token }),
       { status: 200, headers: { "Content-Type": "application/json" } }
     );
   } catch (error) {

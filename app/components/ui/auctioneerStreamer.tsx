@@ -13,6 +13,7 @@ import {
   VideoPresets,
   createLocalTracks,
 } from "livekit-client";
+import { config } from "@/lib/constants";
 
 // Props for AuctioneerStreamer
 interface AuctioneerStreamerProps {
@@ -59,7 +60,7 @@ const AuctioneerStreamer = forwardRef(
         });
 
         // Connect to the LiveKit server
-        await room.connect("ws://44.211.72.87:7880", auctioneerToken);
+        await room.connect(config.streamingUrl, auctioneerToken);
         console.log("Connected to room:", room.name);
 
         roomRef.current = room;

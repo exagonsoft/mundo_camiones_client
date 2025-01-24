@@ -13,7 +13,6 @@ import {
   VideoPresets,
   createLocalTracks,
 } from "livekit-client";
-import { generateToken } from "@/lib/ssTokenGenerator";
 
 // Props for AuctioneerStreamer
 interface AuctioneerStreamerProps {
@@ -42,9 +41,14 @@ const AuctioneerStreamer = forwardRef(
         console.log("Starting stream... room: ", auctionId);
 
         // Replace with the correct token for the auctioneer
-        const auctioneerToken = await generateToken('auctioneer-123', auctionId!, true, false);
+        const auctioneerToken = await fetchToken(
+          "auctioneer-123",
+          auctionId!,
+          true,
+          false
+        );
         console.log("AUCTIONEER TOKEN: ", auctioneerToken);
-        
+
         // Create and configure the LiveKit Room
         const room = new Room({
           adaptiveStream: true,
@@ -146,6 +150,26 @@ const AuctioneerStreamer = forwardRef(
 
     const toggleMirror = () => {
       setShowMirror((prevValue) => !prevValue);
+    };
+
+    const fetchToken = async (
+      identity: string,
+      room: string,
+      canPublish: boolean,
+      canSubscribe: boolean
+    ) => {
+      const response = await fetch("/api/generate_token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identity, room, canPublish, canSubscribe }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch token");
+      }
+
+      const data = await response.json();
+      return data.token;
     };
 
     // Expose functions via the forwarded ref

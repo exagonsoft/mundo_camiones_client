@@ -37,7 +37,7 @@ const NavBar = () => {
   }, [session, validateToken]);
 
   return (
-    <nav className="w-full fixed z-50 top-0 left-0 p-8 py-4 flex justify-between items-center shadow-lg">
+    <nav className="w-full fixed z-[9999] top-0 left-0 p-8 py-4 flex justify-between items-center shadow-lg">
       <div>
         <Link href={"/dashboard"} className="text-lg font-semibold">
           Auction Sample

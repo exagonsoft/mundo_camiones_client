@@ -12,10 +12,10 @@ export default function SiteLayout({
 }>) {
   return (
     <SessionProvider>
-      <main className={`relative antialiased p-8 pt-32`}>
+      <div className={`relative antialiased p-8 pt-[6rem]`}>
         <NavBar />
         {children}
-      </main>
+      </div>
     </SessionProvider>
   );
 }

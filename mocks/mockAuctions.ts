@@ -2,7 +2,7 @@ import { Auction } from "@/app/types/auction";
 
 export const mockAuctions: Auction[] = [
   {
-    id: "auction123",
+    id: "First-Auction",
     lots: [
       {
         id: "auction123-1",
@@ -88,7 +88,7 @@ export const mockAuctions: Auction[] = [
     ],
   },
   {
-    id: "auction456",
+    id: "Second-Auction",
     lots: [
       {
         id: "auction456-1",

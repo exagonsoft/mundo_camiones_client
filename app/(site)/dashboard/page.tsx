@@ -38,7 +38,7 @@ const Dashboard = () => {
     } else if (session?.user?.role === "user") {
       router.push(`/client/${auctionId}`);
     } else {
-      console.error("Error: The user role is not recognized");
+      console.warn("Error: The user role is not recognized");
     }
   };
 

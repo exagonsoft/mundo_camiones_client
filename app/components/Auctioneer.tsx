@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @next/next/no-img-element */
@@ -6,14 +5,15 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
-import TimerController from "./ui/timmerController";
 import { useSession } from "next-auth/react";
 import { AuctionBid, AuctionLot, StaticMedia } from "../types/auction";
-import Peer from "simple-peer";
-import { config, mediaConstraints } from "@/lib/constants";
+import { config } from "@/lib/constants";
 import { mockAuctions } from "@/mocks/mockAuctions";
 import { useRouter } from "next/navigation";
+import TimerCounter from "./ui/timerCounter";
+import AuctioneerStreamer from "./ui/auctioneerStreamer";
 
+//#region UI Components
 const LotItem = ({
   lot,
   currentLotId,
@@ -155,28 +155,26 @@ const LotMediaRender = ({
   );
 };
 
-const AuctioneerView: React.FC<{ auctionId: string }> = ({ auctionId }) => {
+//#endregion
+
+const AuctioneerView = ({ auctionId }: { auctionId?: string }) => {
+  //#region Props
+
   const [currentMedia, setCurrentMedia] = useState<StaticMedia | null>(null);
   const auction = mockAuctions.find((_auction) => _auction.id === auctionId);
   const [currentLot, setCurrentLot] = useState<AuctionLot | null>(null);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
   const socket = useRef<Socket | null>(null);
-  const [isStreaming, setIsStreaming] = useState(false);
-  const peerRef = useRef<Peer.Instance | null>(null);
-  const peersRef = useRef<{
-    [clientId: string]: {
-      peer: Peer.Instance;
-      candidatesQueue: RTCIceCandidateInit[]; // Queue for ICE candidates
-    };
-  }>({});
-
+  const [isOn, setIsOn] = useState(false);
+  const auctioneerRef = useRef<{ publishTracks: () => void; stopStream: () => void }>(null);
+  const [bidHistory, setBidHistory] = useState<AuctionBid[]>([]);
   const { data: session } = useSession();
   const router = useRouter();
   const [timer, setTimer] = useState<number>(0);
-  const [showMirror, setShowMirror] = useState<boolean>(false);
-  const [bidHistory, setBidHistory] = useState<AuctionBid[]>([]);
   const [currentBid, setCurrentBid] = useState<AuctionBid>();
 
+  //#endregion
+
+  //#region Components Life Cycle
   useEffect(() => {
     if (!socket.current) {
       // Initialize WebSocket connection
@@ -195,11 +193,11 @@ const AuctioneerView: React.FC<{ auctionId: string }> = ({ auctionId }) => {
           if (auction) {
             setCurrentLot(auction?.lots[0]);
             setCurrentMedia(auction?.lots[0].media[0]);
-            broadcastMedia(auction?.lots[0].media[0]);
+            broadcastLot(auction?.lots[0]);
           }
         } else {
           if (auction) {
-            broadcastMedia(auction?.lots[0].media[0]);
+            broadcastLot(currentLot);
           }
         }
       });
@@ -210,50 +208,6 @@ const AuctioneerView: React.FC<{ auctionId: string }> = ({ auctionId }) => {
 
       socket.current.on("connect_error", (error) => {
         console.error("WebSocket connection error:", error.message);
-      });
-
-      socket.current?.on("answer", ({ clientId, signalData }) => {
-        console.log(`Received answer from client ${clientId}:`, signalData);
-
-        const peerData = peersRef.current[clientId];
-        if (peerData) {
-          const { peer, candidatesQueue } = peerData;
-
-          if (signalData.type === "answer") {
-            console.log(`Processing answer for client ${clientId}`);
-            peer.signal(signalData); // Process the answer first
-
-            // Process queued ICE candidates
-            while (candidatesQueue.length > 0) {
-              const candidateInit = candidatesQueue.shift();
-              if (candidateInit) {
-                console.log(
-                  `Adding queued ICE candidate for client ${clientId}:`,
-                  candidateInit
-                );
-
-                // Wrap candidateInit as an RTCIceCandidate object
-                peer.signal({
-                  type: "candidate",
-                  candidate: candidateInit as any, // Cast to satisfy simple-peer's expectations
-                });
-              }
-            }
-          } else if (signalData.type === "candidate") {
-            if (peer.connected) {
-              console.log(
-                `Adding ICE candidate for client ${clientId}:`,
-                signalData
-              );
-              peer.signal(signalData);
-            } else {
-              console.log(`Queuing ICE candidate for client ${clientId}`);
-              candidatesQueue.push(signalData.candidate); // Queue the raw RTCIceCandidateInit object
-            }
-          }
-        } else {
-          console.error(`No peer found for client ${clientId}`);
-        }
       });
 
       socket.current?.on("timerUpdate", ({ remainingTime }) => {
@@ -269,41 +223,18 @@ const AuctioneerView: React.FC<{ auctionId: string }> = ({ auctionId }) => {
           bidList: AuctionBid[];
           currentBid: AuctionBid;
         }) => {
+          console.log("THE BIT LIST: ", bidList);
+
           setCurrentBid(currentBid);
-          setBidHistory((prevList) => ({ ...prevList, ...bidList }));
+          setBidHistory(bidList);
+          resetTimer();
         }
       );
 
       // Handle client joining
       socket.current?.on("userJoined", ({ clientId }) => {
         console.log(`Client ${clientId} joined`);
-
-        const mediaStream = videoRef.current?.srcObject as MediaStream | null;
-
-        if (mediaStream) {
-          // Create a new peer for the client
-          const peer = new Peer({
-            initiator: true,
-            trickle: true,
-            stream: mediaStream, // Send the auctioneer's stream
-          });
-
-          // Send the offer to the client
-          peer.on("signal", (signalData) => {
-            console.log(`Sending offer to client ${clientId}:`, signalData);
-            socket.current?.emit("offer", { auctionId, clientId, signalData });
-          });
-
-          // Handle peer errors
-          peer.on("error", (err) =>
-            console.error(`Peer error for client ${clientId}:`, err)
-          );
-
-          // Add the peer and candidates queue to `peersRef`
-          peersRef.current[clientId] = { peer, candidatesQueue: [] };
-        } else {
-          console.error("No media stream available to send to the client.");
-        }
+        handleClientJoin();
       });
     }
 
@@ -312,148 +243,25 @@ const AuctioneerView: React.FC<{ auctionId: string }> = ({ auctionId }) => {
       socket.current?.off("answer");
       socket.current = null;
     };
-  }, [auctionId, session?.user.accessToken?.access_token, isStreaming, socket]);
+  }, [auctionId, session?.user.accessToken?.access_token, socket]);
 
-  const startStream = async () => {
-    try {
-      console.log("Starting stream...");
-
-      // Get new media stream
-      const _mediaStream = await navigator.mediaDevices.getUserMedia(
-        mediaConstraints
-      );
-      console.log("Obtained new media stream:", _mediaStream);
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = _mediaStream;
-        videoRef.current.muted = true; // Mute for autoplay
-        await videoRef.current.play();
-        setShowMirror(true);
+  useEffect(() => {
+    if (!currentLot) {
+      if (auction) {
+        setCurrentLot(auction?.lots[0]);
+        setCurrentMedia(auction?.lots[0].media[0]);
       }
-
-      // Notify the server that the stream has started
-      socket.current?.emit("startStream", { auctionId });
-
-      // Handle new clients joining
-      socket.current?.on("userJoined", ({ clientId }) => {
-        console.log(`Client ${clientId} joined`);
-
-        const mediaStream = videoRef.current?.srcObject as MediaStream | null;
-
-        if (mediaStream) {
-          // Create a new peer for the client
-          const peer = new Peer({
-            initiator: true,
-            trickle: true,
-            stream: mediaStream, // Send the auctioneer's stream
-          });
-
-          // Send the offer to the client
-          peer.on("signal", (signalData) => {
-            console.log(`Sending offer to client ${clientId}:`, signalData);
-            socket.current?.emit("offer", { auctionId, clientId, signalData });
-          });
-
-          // Handle peer errors
-          peer.on("error", (err) =>
-            console.error(`Peer error for client ${clientId}:`, err)
-          );
-
-          // Add the peer and candidates queue to `peersRef`
-          peersRef.current[clientId] = { peer, candidatesQueue: [] };
-        } else {
-          console.error("No media stream available to send to the client.");
-        }
-      });
-
-      // Handle answers from clients
-      socket.current?.on("answer", ({ clientId, signalData }) => {
-        console.log(`Received answer from client ${clientId}:`, signalData);
-
-        const peerData = peersRef.current[clientId];
-        if (peerData) {
-          const { peer, candidatesQueue } = peerData;
-
-          if (signalData.type === "answer") {
-            console.log(`Processing answer for client ${clientId}`);
-            peer.signal(signalData); // Process the answer first
-
-            // Process queued ICE candidates
-            while (candidatesQueue.length > 0) {
-              const candidateInit = candidatesQueue.shift();
-              if (candidateInit) {
-                console.log(
-                  `Adding queued ICE candidate for client ${clientId}:`,
-                  candidateInit
-                );
-
-                // Wrap candidateInit as an RTCIceCandidate object
-                peer.signal({
-                  type: "candidate",
-                  candidate: candidateInit as any, // Cast to satisfy simple-peer's expectations
-                });
-              }
-            }
-          } else if (signalData.type === "candidate") {
-            if (peer.connected) {
-              console.log(
-                `Adding ICE candidate for client ${clientId}:`,
-                signalData
-              );
-              peer.signal(signalData);
-            } else {
-              console.log(`Queuing ICE candidate for client ${clientId}`);
-              candidatesQueue.push(signalData.candidate); // Queue the raw RTCIceCandidateInit object
-            }
-          }
-        } else {
-          console.error(`No peer found for client ${clientId}`);
-        }
-      });
-
-      if (currentMedia) {
-        broadcastMedia(currentMedia);
-      }
-      setIsStreaming(true);
-    } catch (error) {
-      console.error("Failed to start stream:", error);
     }
-  };
+  }, [auction, currentLot, currentMedia]);
 
-  const stopStream = () => {
-    try {
-      console.log("Stopping stream...");
+  //#endregion
 
-      // Stop media tracks
-      const mediaStream = videoRef.current?.srcObject as MediaStream;
-      if (mediaStream) {
-        mediaStream.getTracks().forEach((track) => {
-          console.log(`Stopping track: ${track.kind}, ID: ${track.id}`);
-          track.stop();
-        });
-      }
+  //#region Helper Functions
 
-      // Reset the video element
-      if (videoRef.current) {
-        videoRef.current.srcObject = null;
-        videoRef.current.pause();
-      }
-
-      // Notify the server
-      socket.current?.emit("stopStream", { auctionId });
-
-      // Reset state
-      setIsStreaming(false);
-
-      console.log("Stream stopped successfully and resources released");
-      router.push("/dashboard");
-    } catch (error) {
-      console.error("Error stopping stream:", error);
+  const handleClientJoin = () => {
+    if (auctioneerRef.current) {
+      auctioneerRef.current.publishTracks();
     }
-  };
-
-  const toggleMirror = () => {
-    setShowMirror((prevValue) => !prevValue);
   };
 
   const startTimer = (duration: number) => {
@@ -481,85 +289,63 @@ const AuctioneerView: React.FC<{ auctionId: string }> = ({ auctionId }) => {
     }
   };
 
+  const broadcastLot = (lot: AuctionLot) => {
+    setCurrentLot(lot);
+
+    try {
+      socket.current?.emit("updateLot", {
+        auctionId,
+        lot,
+      });
+    } catch (error) {
+      console.error("Failed to broadcast media:", error);
+    }
+  };
+
   const handleLotClick = (lotId: string) => {
     console.log(`Lot ${lotId} clicked`);
     const _currentLot = auction?.lots.find((_lot) => _lot.id === lotId);
     if (_currentLot) {
       setCurrentLot(_currentLot);
       setCurrentMedia(_currentLot.media[0]);
-      broadcastMedia(_currentLot.media[0]);
+      broadcastLot(_currentLot);
     }
   };
 
-  useEffect(() => {
-    if (!currentLot) {
-      if (auction) {
-        setCurrentLot(auction?.lots[0]);
-        setCurrentMedia(auction?.lots[0].media[0]);
-      }
-    }
-  }, [auction, currentLot, currentMedia]);
+  //#endregion
 
-  useEffect(() => {}, [showMirror]);
+  //#region Render Section
 
   return (
     <div className="flex flex-col gap-4 p-4">
       <div className="flex flex-col gap-4">
-        <div className="">
-          <h1 className="">{auction?.id}</h1>
-          {!isStreaming ? (
+        <div className="flex gap-4 items-center">
+          <h1 className="font-bold uppercase">{auction?.id}</h1>
+          {!isOn ? (
             <button
-              onClick={startStream}
+              onClick={() => {
+                setIsOn(true);
+                startTimer(15);
+              }}
               className="bg-blue-500 text-white px-4 py-2 rounded"
             >
               Comenzar Remate
             </button>
           ) : (
             <button
-              onClick={stopStream}
+              onClick={() => {
+                setIsOn(false);
+                resetTimer();
+              }}
               className="bg-red-500 text-white px-4 py-2 rounded"
             >
               Detener Remate
             </button>
           )}
         </div>
-        {/* <div className="">
-          {bidHistory?.map((bid, indx) => (<div key={indx}>
-            {bid.username}
-            {bid.bidAmount}
-          </div>))}
-        </div> */}
-        <div className="flex w-full justify-end items-start gap-4">
-          {!showMirror ? (
-            <>
-              <button
-                onClick={toggleMirror}
-                className="bg-blue-500 text-white px-4 py-2 rounded"
-              >
-                Mostrar Espejo
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                onClick={toggleMirror}
-                className="bg-red-500 text-white px-4 py-2 rounded"
-              >
-                Ocultar Espejo
-              </button>
-            </>
-          )}
-          <video
-            ref={videoRef}
-            autoPlay
-            aria-disabled={!showMirror}
-            className={`w-64 h-48 border rounded ${!showMirror && "hidden"}`}
-          />
-          {!showMirror && <div className={`w-64 h-48 border rounded`}></div>}
-        </div>
       </div>
       <hr className="" />
-
+      <AuctioneerStreamer auctionId={auctionId} ref={auctioneerRef} />
       {/* Media Section */}
       <div className="flex justify-between items-start gap-4">
         <div className="flex flex-col items-start gap-4 w-[40%]">
@@ -569,13 +355,24 @@ const AuctioneerView: React.FC<{ auctionId: string }> = ({ auctionId }) => {
             onMediaChange={broadcastMedia}
           />
         </div>
-        <div className="w-[25%]">
-          <TimerController
-            startTimer={startTimer}
-            resetTimer={resetTimer}
-            timer={timer}
-            currentBid={currentBid}
-          />
+        <div className="w-[25%] flex flex-col gap-4 relative justify-start items-center">
+          <TimerCounter timer={timer} currentBid={currentBid} />
+          <div className="w-full flex flex-col gap2">
+            <h3 className="font-bold uppercase w-full text-center">
+              ofertas anteriores
+            </h3>
+            <ul className="list-disc w-full">
+              {bidHistory?.map((bid, index) => (
+                <li
+                  key={index}
+                  className="text-sm flex gap-2 w-full justify-center items-center"
+                >
+                  <span className="">{bid.username}</span>
+                  <span className="font-bold">${bid.bidAmount}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
         <div className="w-[35%] flex flex-col gap-4">
           <h4 className="">Listado de Lotes</h4>
@@ -592,5 +389,7 @@ const AuctioneerView: React.FC<{ auctionId: string }> = ({ auctionId }) => {
     </div>
   );
 };
+
+//#endregion
 
 export default AuctioneerView;

@@ -86,7 +86,7 @@ const LotMediaRender = ({
         <div className="flex w-max p-4 justify-center items-center">
           <button
             onClick={handlePrev}
-            className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-gray-700 text-white px-2 py-1 rounded-full z-10"
+            className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-gray-700 text-white p-2 rounded-full z-10"
           >
             ◀
           </button>
@@ -114,7 +114,7 @@ const LotMediaRender = ({
           {" "}
           <button
             onClick={handleNext}
-            className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gray-700 text-white px-2 py-1 rounded-full z-10"
+            className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gray-700 text-white p-2 rounded-full z-10"
           >
             ▶
           </button>
@@ -165,7 +165,10 @@ const AuctioneerView = ({ auctionId }: { auctionId?: string }) => {
   const [currentLot, setCurrentLot] = useState<AuctionLot | null>(null);
   const socket = useRef<Socket | null>(null);
   const [isOn, setIsOn] = useState(false);
-  const auctioneerRef = useRef<{ publishTracks: () => void; stopStream: () => void }>(null);
+  const auctioneerRef = useRef<{
+    publishTracks: () => void;
+    stopStream: () => void;
+  }>(null);
   const [bidHistory, setBidHistory] = useState<AuctionBid[]>([]);
   const { data: session } = useSession();
   const router = useRouter();
@@ -260,7 +263,7 @@ const AuctioneerView = ({ auctionId }: { auctionId?: string }) => {
 
   const handleClientJoin = () => {
     if (auctioneerRef.current) {
-      auctioneerRef.current.publishTracks();
+      //auctioneerRef.current.publishTracks();
     }
   };
 
@@ -345,17 +348,24 @@ const AuctioneerView = ({ auctionId }: { auctionId?: string }) => {
         </div>
       </div>
       <hr className="" />
-      <AuctioneerStreamer auctionId={auctionId} ref={auctioneerRef} />
+      <div className="w-full flex gap-8 justify-between items-start">
+        <div className="w-1/3 flex flex-col justify-start items-center"></div>
+        <div className="w-1/3 flex flex-col justify-start items-center"></div>
+        <div className="w-1/3 flex flex-col justify-start items-center">
+          <AuctioneerStreamer auctionId={auctionId} ref={auctioneerRef} />
+        </div>
+      </div>
+
       {/* Media Section */}
-      <div className="flex justify-between items-start gap-4">
-        <div className="flex flex-col items-start gap-4 w-[40%]">
+      <div className="flex justify-between items-start gap-8">
+        <div className="flex flex-col items-start gap-4 w-1/3">
           <LotMediaRender
             lot={currentLot || undefined}
             currentMedia={currentMedia || undefined}
             onMediaChange={broadcastMedia}
           />
         </div>
-        <div className="w-[25%] flex flex-col gap-4 relative justify-start items-center">
+        <div className="w-1/3 flex flex-col gap-4 relative justify-start items-center">
           <TimerCounter timer={timer} currentBid={currentBid} />
           <div className="w-full flex flex-col gap2">
             <h3 className="font-bold uppercase w-full text-center">
@@ -374,8 +384,8 @@ const AuctioneerView = ({ auctionId }: { auctionId?: string }) => {
             </ul>
           </div>
         </div>
-        <div className="w-[35%] flex flex-col gap-4">
-          <h4 className="">Listado de Lotes</h4>
+        <div className="w-1/3 flex flex-col gap-4">
+          <h4 className="w-full text-center font-bold uppercase">Listado de Lotes</h4>
           {auction?.lots.map((lot, indx) => (
             <LotItem
               key={indx}

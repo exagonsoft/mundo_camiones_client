@@ -3,7 +3,13 @@ import React, { useEffect, useRef, useState } from "react";
 import { Room, RoomEvent, Track, RemoteTrackPublication } from "livekit-client";
 import { config } from "@/lib/constants";
 
-const ClientStreamer = ({ auctionId, clientId }: { auctionId?: string, clientId?: string }) => {
+const ClientStreamer = ({
+  auctionId,
+  clientId,
+}: {
+  auctionId?: string;
+  clientId?: string;
+}) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const roomRef = useRef<Room | null>(null);
   const [isConnecting, setIsConnecting] = useState(true);
@@ -35,7 +41,12 @@ const ClientStreamer = ({ auctionId, clientId }: { auctionId?: string, clientId?
         console.log("Attempting to connect to the room...");
 
         // Replace with the correct token for the client
-        const clientToken = await fetchToken(clientId!, auctionId!, false, true);
+        const clientToken = await fetchToken(
+          clientId!,
+          auctionId!,
+          false,
+          true
+        );
         console.log("CLIENT TOKEN: ", clientToken);
 
         // Create and configure the LiveKit Room
@@ -45,7 +56,9 @@ const ClientStreamer = ({ auctionId, clientId }: { auctionId?: string, clientId?
         let retries = 5; // Number of attempts
         while (retries > 0) {
           try {
-            await room.connect(config.streamingUrl, clientToken);
+            await room.connect(config.streamingUrl, clientToken, {
+              autoSubscribe: true,
+            });
             console.log("Connected to room:", room.name);
             setIsConnected(true);
             break;
@@ -96,9 +109,9 @@ const ClientStreamer = ({ auctionId, clientId }: { auctionId?: string, clientId?
         setIsConnecting(false);
       }
     };
-    console.log("THE CLIENT PARAMETERS: ", {auctionId, clientId});
-    
-    if(auctionId && clientId){
+    console.log("THE CLIENT PARAMETERS: ", { auctionId, clientId });
+
+    if (auctionId && clientId) {
       connectToRoom();
     }
 
@@ -111,13 +124,19 @@ const ClientStreamer = ({ auctionId, clientId }: { auctionId?: string, clientId?
   }, [auctionId, clientId]);
 
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col items-center justify-center w-full min-h-52">
       {isConnecting ? (
         <p>Connecting to the auction...</p>
       ) : isConnected ? (
-        <video ref={videoRef} autoPlay className="w-64 h-48 border rounded" />
+        <video
+          ref={videoRef}
+          autoPlay
+          className="w-full h-auto border rounded"
+        />
       ) : (
-        <p>Failed to connect to the auction. Please try again later.</p>
+        <p className="text-wrap">
+          Failed to connect to the auction. Please try again later.
+        </p>
       )}
     </div>
   );

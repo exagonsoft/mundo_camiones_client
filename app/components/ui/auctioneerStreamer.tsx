@@ -60,7 +60,9 @@ const AuctioneerStreamer = forwardRef(
         });
 
         // Connect to the LiveKit server
-        await room.connect(config.streamingUrl, auctioneerToken);
+        await room.connect(config.streamingUrl, auctioneerToken, {
+          autoSubscribe: true,
+        });
         console.log("Connected to room:", room.name);
 
         roomRef.current = room;
@@ -81,6 +83,25 @@ const AuctioneerStreamer = forwardRef(
         }
 
         setIsStreaming(true);
+
+        // Detect when new participants join
+        room.on(RoomEvent.ParticipantConnected, async (participant) => {
+          console.log("New participant joined:", participant.identity);
+
+          const publishedTrackIds = room.localParticipant
+            .getTrackPublications()
+            .map((publication) => publication.trackSid);
+
+          for (const track of tracksRef.current) {
+            const isPublished = publishedTrackIds.includes(track.sid);
+            if (!isPublished) {
+              await room.localParticipant.publishTrack(track);
+              console.log(
+                `Re-published track for participant ${participant.identity}.`
+              );
+            }
+          }
+        });
 
         // Handle room disconnection
         room.on(RoomEvent.Disconnected, () => {
@@ -181,19 +202,19 @@ const AuctioneerStreamer = forwardRef(
 
     return (
       <div className="flex w-full justify-end items-start gap-4">
-        <div className="w-max flex flex-col gap-4">
+        <div className="w-1/3 flex flex-col gap-4">
           {!isStreaming ? (
             <button
               onClick={startStream}
               disabled={auctionId === null || undefined}
-              className="bg-blue-500 text-white px-4 py-2 rounded"
+              className="bg-blue-500 text-white px-4 py-2 rounded text-sm w-full"
             >
               Comenzar Transmisión
             </button>
           ) : (
             <button
               onClick={stopStream}
-              className="bg-red-500 text-white px-4 py-2 rounded"
+              className="bg-red-500 text-white px-4 py-2 rounded text-sm w-full"
             >
               Terminar Transmisión
             </button>
@@ -201,28 +222,30 @@ const AuctioneerStreamer = forwardRef(
           {!showMirror ? (
             <button
               onClick={toggleMirror}
-              className="bg-blue-500 text-white px-4 py-2 rounded"
+              className="bg-blue-500 text-white px-4 py-2 rounded text-sm w-full"
             >
               Mostrar Espejo
             </button>
           ) : (
             <button
               onClick={toggleMirror}
-              className="bg-red-500 text-white px-4 py-2 rounded"
+              className="bg-red-500 text-white px-4 py-2 rounded text-sm w-full"
             >
               Ocultar Espejo
             </button>
           )}
         </div>
+        <div className={`w-2/3 h-56 border rounded ${!showMirror && "hidden"}`}>
+          <video
+            ref={videoRef}
+            autoPlay
+            muted
+            aria-disabled={!showMirror}
+            className={`w-full h-full max-h-56 object-cover border rounded ${!showMirror && "hidden"}`}
+          />
+        </div>
 
-        <video
-          ref={videoRef}
-          autoPlay
-          muted
-          aria-disabled={!showMirror}
-          className={`w-64 h-48 border rounded ${!showMirror && "hidden"}`}
-        />
-        {!showMirror && <div className={`w-64 h-48 border rounded`}></div>}
+        {!showMirror && <div className={`w-2/3 h-56 border rounded`}></div>}
       </div>
     );
   }

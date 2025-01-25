@@ -148,8 +148,6 @@ const ClientView = ({ auctionIdentifier }: { auctionIdentifier?: string }) => {
     setBidHistory(bidList);
   };
 
-  
-
   const handlePlaceBid = (amount: number) => {
     if (socket.current) {
       const newBid = {
@@ -199,77 +197,69 @@ const ClientView = ({ auctionIdentifier }: { auctionIdentifier?: string }) => {
                   : "bg-transparent"
               } `}
             ></div>
-            <span className={`text-[.6rem] p-0 flex uppercase ${currentLot?.id && 'text-green-400'}`}>{currentLot?.id ? 'En vivo' : 'en espera'}</span>
+            <span
+              className={`text-[.6rem] p-0 flex uppercase ${
+                currentLot?.id && "text-green-400"
+              }`}
+            >
+              {currentLot?.id ? "En vivo" : "en espera"}
+            </span>
           </div>
         </div>
       </div>
-      <div className="w-full flex flex-col relative min-h-52">
-        <div className=""></div>
-        <div className="w-full flex gap-4 justify-between">
-          {/* Product Media */}
-          <div className="flex flex-col items-center gap-2 w-1/3">
-            <MediaComponent productMedia={productMedia!} />
-          </div>
-
-          {/* Timer */}
-          <div className="flex flex-col items-center gap-4 w-1/4 justify-center relative">
-            <div className="flex-col w-full gap-1 text-sm border flex justify-center items-center rounded-md relative">
-              <span className="!text-sm">
-                precio base $ {currentLot?.startPrice}
-              </span>
-              <span className="!text-sm">
-                incremento $ {currentLot?.increment}
-              </span>
-            </div>
-            <div className="font-bold h-full w-full flex justify-center items-center relative mt-4">
-              <TimerCounter timer={timer} currentBid={currentBid} />
-            </div>
-          </div>
-
-          {/* Auctioneer Stream */}
-          <ClientStreamer auctionId={auctionIdentifier} clientId={socket.current?.id}/>
+      <div className="w-full flex justify-between gap-8 items-start">
+        <div className="w-1/3 flex flex-col gap-4">
+          <MediaComponent productMedia={productMedia!} />
         </div>
-      </div>
-      <div className="w-full flex gap-4 justify-between relative">
-        <div className="w-1/4"></div>
-        <div className="w-1/3">
-          <div className="w-full flex flex-col justify-center items-center gap-4">
-            <div className="flex flex-col items-center gap-2">
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const amount = parseFloat(
-                    (e.target as HTMLFormElement).bidAmount.value
-                  );
-                  if (amount > currentBid!.bidAmount) {
-                    handlePlaceBid(amount);
-                  } else {
-                    alert("Your bid must be higher than the current bid.");
-                  }
-                }}
-                className="flex items-center gap-2 w-full"
+        <div className="w-1/3 flex flex-col gap-4">
+          <div className="flex-col w-full gap-1 text-sm border flex justify-center items-center rounded-md relative">
+            <span className="!text-sm">
+              precio base $ {currentLot?.startPrice}
+            </span>
+            <span className="!text-sm">
+              incremento $ {currentLot?.increment}
+            </span>
+          </div>
+          <div className="font-bold h-full w-full flex justify-center items-center relative mt-4">
+            <TimerCounter timer={timer} currentBid={currentBid} />
+          </div>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const amount = parseFloat(
+                (e.target as HTMLFormElement).bidAmount.value
+              );
+              if (amount > currentBid!.bidAmount) {
+                handlePlaceBid(amount);
+              } else {
+                alert("Your bid must be higher than the current bid.");
+              }
+            }}
+            className="flex items-center gap-2 w-full justify-center mt-12"
+          >
+            <div className="w-full flex relative justify-center items-center gap-4">
+              <input
+                type="number"
+                name="bidAmount"
+                placeholder="Enter your bid"
+                className="border p-2 rounded w-1/2"
+              />
+              <span className="absolute right-[40%] text-2xl">+</span>
+              <button
+                type="submit"
+                className="bg-blue-500 text-white px-4 py-2 rounded w-max uppercase"
               >
-                <div className="w-full flex relative justify-between items-center gap-4">
-                  <input
-                    type="number"
-                    name="bidAmount"
-                    placeholder="Enter your bid"
-                    className="border p-2 rounded"
-                  />
-                  <span className="absolute right-28 text-2xl">+</span>
-                  <button
-                    type="submit"
-                    className="bg-blue-500 text-white px-4 py-2 rounded w-max uppercase"
-                  >
-                    Pujar
-                  </button>
-                </div>
-              </form>
+                Pujar
+              </button>
             </div>
-          </div>
+          </form>
         </div>
-        <div className="w-1/4">
-          <div className="flex flex-col items-center gap-2 justify-center">
+        <div className="w-1/3 flex flex-col gap-4">
+          <ClientStreamer
+            auctionId={auctionIdentifier}
+            clientId={socket.current?.id}
+          />
+          <div className="flex flex-col items-center gap-2 justify-center mt-12">
             <h3 className="font-bold uppercase">ofertas anteriores</h3>
             <ul className="list-disc">
               {bidHistory.map((bid, index) => (
@@ -281,6 +271,27 @@ const ClientView = ({ auctionIdentifier }: { auctionIdentifier?: string }) => {
             </ul>
           </div>
         </div>
+      </div>
+      <div className="w-full flex flex-col relative min-h-52">
+        <div className=""></div>
+        <div className="w-full flex gap-4 justify-between">
+          {/* Product Media */}
+          <div className="flex flex-col items-center gap-2 w-1/3"></div>
+
+          {/* Timer */}
+          <div className="flex flex-col items-center gap-4 w-1/4 justify-center relative"></div>
+
+          {/* Auctioneer Stream */}
+        </div>
+      </div>
+      <div className="w-full flex gap-4 justify-between relative">
+        <div className="w-1/3"></div>
+        <div className="w-1/4">
+          <div className="w-full flex flex-col justify-center items-center gap-4">
+            <div className="flex flex-col items-center gap-2"></div>
+          </div>
+        </div>
+        <div className="w-1/3"></div>
       </div>
     </section>
   );

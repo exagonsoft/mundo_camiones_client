@@ -27,3 +27,4 @@ export const config = {
   prodUrl: "https://subastas.client.martinnotaryfl.com",
   streamingUrl: "https://subastas.streaming.martinnotaryfl.com"
 }
+

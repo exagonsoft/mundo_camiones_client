@@ -1,14 +1,45 @@
 import { AuctionBid } from "@/app/types/auction";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 
-const TimerCounter = ({ timer, currentBid }: { timer: number, currentBid?: AuctionBid }) => {
-  useEffect(() => {}, [timer, currentBid])
+const TimerCounter = ({
+  timer,
+  currentBid,
+}: {
+  timer: number;
+  currentBid?: AuctionBid;
+}) => {
+  const [fill, setFill] = useState(100); // Start with the border fully filled.
+
+  useEffect(() => {
+    // If timer is 15 or 0, border is fully filled (100%).
+    if (timer === 15 || timer === 0) {
+      setFill(100);
+    } else {
+      // Calculate the fill percentage dynamically as the timer decreases.
+      const calculatedFill = (timer / 15) * 100;
+      setFill(calculatedFill);
+    }
+  }, [timer]);
+
   return (
-    <div className="flex flex-col w-20 h-20 justify-center items-center gap-4 p-20 mt-4 rounded-full relative z-20">
-      <div className="flex w-20 h-20 justify-center items-center p-[4.5rem] rounded-full absolute bg-white z-20"></div>
-      <span className="relative z-20 ">{timer}s</span>
-      <span className="relative z-20 font-bold flex w-full min-w-max text-center">{`$ ${currentBid?.bidAmount || 0}`}</span>
-      <div className="flex w-20 h-20 justify-center items-center p-20 rounded-full absolute bg-green-500 z-10"></div>
+    <div className="relative flex items-center justify-center w-48 h-48">
+      {/* Circular border with dynamic fill */}
+      <div
+        className="absolute w-full h-full rounded-full border-[0]"
+        style={{
+          borderColor: "#22c55e", // Tailwind green-500
+          background: `conic-gradient(
+            #22c55e ${fill * 3.6}deg,
+            transparent ${fill * 3.6}deg
+          )`,
+        }}
+      ></div>
+
+      {/* Inner content */}
+      <div className="relative z-10 flex flex-col gap-4 items-center justify-center w-44 h-44 bg-white rounded-full">
+        <span className="text-xl font-bold">{timer}s</span>
+        <span className="text-lg font-bold">{`$${currentBid?.bidAmount || 0}`}</span>
+      </div>
     </div>
   );
 };

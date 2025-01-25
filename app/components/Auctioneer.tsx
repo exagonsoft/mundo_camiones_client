@@ -273,6 +273,12 @@ const AuctioneerView = ({ auctionId }: { auctionId?: string }) => {
     socket.current?.emit("startTimer", { auctionId, duration });
   };
 
+  const stopTimer = (duration: number) => {
+    console.log("Starting Counter");
+
+    socket.current?.emit("stopTimer", { auctionId, duration });
+  };
+
   const resetTimer = () => {
     console.log("Resetting Timer");
 
@@ -338,7 +344,7 @@ const AuctioneerView = ({ auctionId }: { auctionId?: string }) => {
             <button
               onClick={() => {
                 setIsOn(false);
-                resetTimer();
+                startTimer(0);
               }}
               className="bg-red-500 text-white px-4 py-2 rounded"
             >

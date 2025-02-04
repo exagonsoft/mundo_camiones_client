@@ -15,7 +15,6 @@ import {
   VehicleMedia,
 } from "../types/auction";
 import { config } from "@/lib/constants";
-import { mockAuctions } from "@/mocks/mockAuctions";
 import { useRouter } from "next/navigation";
 import TimerCounter from "./ui/timerCounter";
 import AuctioneerStreamer from "./ui/auctioneerStreamer";

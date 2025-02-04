@@ -1,6 +1,6 @@
 "use client";
 
-import ClientView from "../../../components/ClientView";
+import ClientView from "@/app/components/ClientView";
 import { useParams } from "next/navigation";
 
 const ClientPage = () => {

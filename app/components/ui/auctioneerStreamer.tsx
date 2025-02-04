@@ -78,9 +78,14 @@ const AuctioneerStreamer = forwardRef(
         const videoTrack = tracks.find((track) => track.kind === "video");
         if (videoTrack && videoRef.current) {
           videoTrack.attach(videoRef.current);
-          videoRef.current.play();
-          console.log("Local video attached.");
         }
+
+        const audioTrack = tracks.find((track) => track.kind === "audio");
+        if (audioTrack && videoRef.current) {
+          audioTrack.attach(videoRef.current);
+          console.log("Local video and audio attached.");
+        }
+        videoRef?.current?.play();
 
         setIsStreaming(true);
 
@@ -239,7 +244,6 @@ const AuctioneerStreamer = forwardRef(
           <video
             ref={videoRef}
             autoPlay
-            muted
             aria-disabled={!showMirror}
             className={`w-full h-full max-h-56 object-cover border rounded ${!showMirror && "hidden"}`}
           />

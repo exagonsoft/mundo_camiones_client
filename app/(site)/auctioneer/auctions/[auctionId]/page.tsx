@@ -1,7 +1,7 @@
 "use client"
 
 import { useSession } from "next-auth/react";
-import AuctionManager from "../../../components/Auctioneer";
+import AuctionManager from "@/app/components/Auctioneer";
 import { useParams } from "next/navigation";
 
 const ManagerPage = () => {

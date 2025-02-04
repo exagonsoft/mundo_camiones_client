@@ -2,10 +2,10 @@
 
 "use client"
 
-import { StaticMedia } from "@/app/types/auction";
+import { VehicleMedia } from "@/app/types/auction";
 import React, { useEffect } from "react";
 
-const MediaComponent = ({ productMedia }: { productMedia: StaticMedia }) => {
+const MediaComponent = ({ productMedia }: { productMedia: VehicleMedia }) => {
   useEffect(() => {}, [productMedia]);
   return (
     <>

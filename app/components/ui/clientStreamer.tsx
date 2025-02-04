@@ -131,6 +131,7 @@ const ClientStreamer = ({
         <video
           ref={videoRef}
           autoPlay
+          muted
           className="w-full h-auto border rounded"
         />
       ) : (

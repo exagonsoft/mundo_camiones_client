@@ -29,7 +29,7 @@ export interface AuctionBid {
 }
 
 export interface AuctionLot {
-  id: string;
+  _id: string;
   title: string;
   description: string;
   startPrice: number;
@@ -39,8 +39,21 @@ export interface AuctionLot {
 
 // Represents an auction containing multiple lots
 export interface Auction {
-  id: string;
-  lots: AuctionLot[];
+  _id: string;
+  startDate: Date;
+  endDate: Date;
+  auctioneerId: string;
+  vehicles: string[];
+  active: boolean;
+}
+
+export interface AuctionDetail {
+  _id: string;
+  startDate: Date;
+  endDate: Date;
+  auctioneerId: string;
+  vehicles: Vehicle[];
+  active: boolean;
 }
 
 export interface ClientToServerEvents {
@@ -85,4 +98,45 @@ export interface RtpCapabilities {
   }>;
   headerExtensions: Array<any>;
   fecMechanisms: Array<any>;
+}
+
+export interface VehicleMedia {
+  type: "image" | "video" | "unknown"; // Restrict type to "image" or "video"
+  url: string;
+}
+
+export interface Vehicle {
+  _id: string;
+  title: string;
+  description: string;
+  country: string;
+  price: number;
+  media: VehicleMedia[];
+}
+
+export interface VehicleListResponse {
+  data: Vehicle[] | null;
+  errors: string | null;
+}
+
+export interface AuctionListResponse {
+  data: Auction[] | null;
+  errors: string | null;
+}
+
+export interface AuctionDetailsResponse {
+  data: AuctionDetail | null;
+  errors: string | null;
+}
+
+export interface UserListResponse {
+  data: User[] | null;
+  errors: string | null;
+}
+
+export interface User {
+  _id: string;
+  username: string;
+  password: string;
+  role: string;
 }

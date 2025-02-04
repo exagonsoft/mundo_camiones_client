@@ -54,6 +54,13 @@ const authOptions: AuthOptions = {
         role: token.role,
         accessToken: token.accessToken, // Use token directly
       };
+
+      // Check if the token has expired
+      if (Date.now() / 1000 > session.expires) {
+        // Token is expired
+        console.log("Token expired, logging out...");
+        return {};
+      }
       return session;
     },
   },

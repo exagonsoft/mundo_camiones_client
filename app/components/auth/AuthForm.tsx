@@ -56,7 +56,7 @@ const AuthForm: React.FC = () => {
       console.log("THE SESSION: ", session);
 
       if (session?.user?.role === "admin" || session?.user?.role === "user") {
-        router.push("/dashboard");
+        router.push(session?.user?.role === "admin" ? "/auctioneer/dashboard" : "/client/dashboard");
       } else {
         setError("Invalid role or user not authorized");
       }

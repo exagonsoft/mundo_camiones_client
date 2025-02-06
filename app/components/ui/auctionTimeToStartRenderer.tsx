@@ -38,7 +38,7 @@ const AuctionTimeToStartRenderer = ({
   }, [auction]);
 
   return (
-    <div className="w-full flex flex-col justify-center items-center p-4 gap-4 min-h-[200px] mt-6 rounded-lg shadow-md bg-gray-400">
+    <div className="w-full flex flex-col justify-center items-center p-4 gap-4 min-h-[100px] mt-6 rounded-lg shadow-md bg-gray-400">
       <h2 className="font-bold text-lg">El Remate comienza en:</h2>
       {remainingTime.days > 0 ? (
         <p className="text-2xl font-semibold">

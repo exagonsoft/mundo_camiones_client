@@ -1,5 +1,7 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react/display-name */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+"use client";
 import React, {
   useEffect,
   useRef,
@@ -13,12 +15,17 @@ import {
   VideoPresets,
   createLocalTracks,
 } from "livekit-client";
+
+
+import "@livekit/components-styles";
 import { config } from "@/lib/constants";
 
 // Props for AuctioneerStreamer
 interface AuctioneerStreamerProps {
   auctionId?: string;
 }
+
+
 
 // ForwardRef Component
 const AuctioneerStreamer = forwardRef(
@@ -28,8 +35,12 @@ const AuctioneerStreamer = forwardRef(
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const roomRef = useRef<Room | null>(null);
     const tracksRef = useRef<any[]>([]); // Store tracks for reuse
+    const [token, setToken] = useState<string>("");
 
     useEffect(() => {
+      if(auctionId){
+        getStreamToken();
+      }
       return () => {
         if (roomRef.current) {
           roomRef.current.disconnect();
@@ -37,18 +48,23 @@ const AuctioneerStreamer = forwardRef(
       };
     }, [auctionId]);
 
+    const getStreamToken = async () => {
+      const auctioneerToken = await fetchToken(
+        "auctioneer-123",
+        auctionId!,
+        true,
+        false
+      );
+
+      setToken(auctioneerToken);
+      console.log("AUCTIONEER TOKEN: ", auctioneerToken);
+    };
+
     const startStream = async () => {
       try {
         console.log("Starting stream... room: ", auctionId);
 
         // Replace with the correct token for the auctioneer
-        const auctioneerToken = await fetchToken(
-          "auctioneer-123",
-          auctionId!,
-          true,
-          false
-        );
-        console.log("AUCTIONEER TOKEN: ", auctioneerToken);
 
         // Create and configure the LiveKit Room
         const room = new Room({
@@ -60,7 +76,7 @@ const AuctioneerStreamer = forwardRef(
         });
 
         // Connect to the LiveKit server
-        await room.connect(config.streamingUrl, auctioneerToken, {
+        await room.connect(config.streamingUrl, token, {
           autoSubscribe: true,
         });
         console.log("Connected to room:", room.name);
@@ -245,7 +261,9 @@ const AuctioneerStreamer = forwardRef(
             ref={videoRef}
             autoPlay
             aria-disabled={!showMirror}
-            className={`w-full h-full max-h-56 object-cover border rounded ${!showMirror && "hidden"}`}
+            className={`w-full h-full max-h-56 object-cover border rounded ${
+              !showMirror && "hidden"
+            }`}
           />
         </div>
 

@@ -35,7 +35,7 @@ const ClientAuctions = () => {
       id="auctions-section"
       className="p-6 space-y-4 flex flex-col gap-4 relative"
     >
-      <div className="w-full flex justify-end"></div>
+      <div className="w-full flex justify-end p-4"></div>
       <div className="w-full  flex flex-col gap-4">
         {auctions.map((auction, indx) => (
           <AuctionClientListItem

@@ -49,28 +49,22 @@ const ClientStreamer = ({
         );
         console.log("CLIENT TOKEN: ", clientToken);
 
-        // Create and configure the LiveKit Room
-        const room = new Room();
+        let room = null;
 
-        // Retry logic in case the room is not yet available
-        let retries = 5; // Number of attempts
-        while (retries > 0) {
-          try {
-            await room.connect(config.streamingUrl, clientToken, {
-              autoSubscribe: true,
-            });
-            console.log("Connected to room:", room.name);
-            setIsConnected(true);
-            break;
-          } catch (error) {
-            if (retries === 1) throw error;
-            console.warn("Room not ready, retrying...");
-            await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait for 2 seconds
-          }
-          retries -= 1;
+        // Create and configure the LiveKit Room
+        if(!roomRef.current){
+          room = new Room();
+        }else{
+          room = roomRef.current;
+          roomRef.current = room;
         }
 
-        roomRef.current = room;
+        await room.connect(config.streamingUrl, clientToken, {
+          autoSubscribe: true,
+        });
+        console.log("Connected to room:", room.name);
+        setIsConnected(true);
+
 
         // Subscribe to media tracks
         room.on(
@@ -132,7 +126,7 @@ const ClientStreamer = ({
           ref={videoRef}
           autoPlay
           muted
-          className="w-full h-auto border rounded"
+          className="w-full h-auto max-h-52 border rounded object-fill"
         />
       ) : (
         <p className="text-wrap">

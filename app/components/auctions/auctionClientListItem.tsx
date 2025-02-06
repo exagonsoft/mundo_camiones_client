@@ -35,8 +35,9 @@ const AuctionClientListItem = ({
             timeStyle: "short",
           })}
         </div>
+        <div className="w-1/4 flex justify-center items-center"></div>
       </div>
-      <div className="w-1/4 flex justify-end items-center gap-4">
+      <div className="w-1/5 flex justify-end items-center gap-4">
         <ActionLink
           type="none"
           text="Entrar en Subasta"
